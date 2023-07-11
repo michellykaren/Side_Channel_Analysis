@@ -16,191 +16,188 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "aes-independant.h"
 #include "hal.h"
 #include "simpleserial.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
+#define ACT // ADD, OR
+#define memory_target 0x20000000
+volatile uint8_t *mem_address = (volatile uint8_t *)memory_target;  // Endereço de memória desejado
+typedef struct {
+    uint8_t registers[4];
 
-uint8_t get_mask(uint8_t* m, uint8_t len)
-{
-  aes_indep_mask(m, len);
-  return 0x00;
+} Context;
+
+static char hex_lookup[16] = {
+	'0', '1', '2', '3', '4', '5', '6', '7',
+	'8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+};
+
+void context_puts(Context *cont) {
+    uint8_t *reg_ptr = cont->registers;
+
+    for (int i = 0; i < 4; i++) {
+        putch('i');
+        putch(hex_lookup[*reg_ptr >> 4 ]);
+        putch(hex_lookup[*reg_ptr & 0xF]);
+        reg_ptr++;
+    }
+
+    // Imprime o valor do memory_target
+    uint32_t target = memory_target;
+    putch('m');
+    putch(hex_lookup[(target >> 28) & 0xF ]);
+    putch(hex_lookup[(target >> 24) & 0xF ]);
+    putch(hex_lookup[(target >> 20) & 0xF ]);
+    putch(hex_lookup[(target >> 16) & 0xF ]);
+    putch(hex_lookup[(target >> 12) & 0xF ]);
+    putch(hex_lookup[(target >>  8) & 0xF ]);
+    putch(hex_lookup[(target >>  4) & 0xF ]);
+    putch(hex_lookup[(target & 0xF) ]);
+
 }
 
-uint8_t get_key(uint8_t* k, uint8_t len)
-{
-	aes_indep_key(k);
-	return 0x00;
+void init_contexto(Context *cont) {
+    *mem_address = 0;
+    for (int i = 0; i < 4; i++) {
+        cont->registers[i] = 0x00;  // Valor padrão: 0
+    }
 }
 
-uint8_t get_pt(uint8_t* pt, uint8_t len)
-{
-    uint8_t volatile seg =      0x000000BE;
-    uint8_t volatile estado =   0x00000000;
-    aes_indep_enc_pretrigger(pt);
 
-	trigger_high();
+uint8_t get_pt(uint8_t* pt, uint8_t len) {
+    Context myContext;
+    init_contexto(&myContext);
+    //context_puts(&myContext);
 
-    __asm volatile (
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
+    *mem_address =pt[0];
+
+    #ifdef NORMAL_EOR
+    uint8_t volatile seg =  0xBE;
+    #endif
+
+    #ifdef NORMAL_ADD
+    uint8_t volatile seg =  0xBE;
+    #endif
+
+    #ifdef EOR
+    uint8_t volatile seg =  0xBE;
+    __asm__ volatile (
+        "LDRB %[s], =0xBE                   \n"
+        : [s] "=r" (seg)
+        : 
+    );
+    #endif
+    trigger_high();
+
+    #ifdef ACT
+    __asm__ volatile (
         "NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-	);
-
-    estado =  pt[0] ^ seg;
-
-    __asm volatile (
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
         "NOP \n"
-		"NOP \n"
-		"NOP \n"
-		"NOP \n"
-	);
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "mov    r1, #0xBE               \n" //Moving value const to R1
+        "ldrb   r0, [%[mem_address]]    \n" //Moving address to R6
+        "eor    r0, r1                  \n" //Operação EOR entre o valor carregado e R1
+        "strb   r0, [%[mem_address]]    \n" //Salvar o resultado da operação no endereço de memória
+        :   		                        // Sem operandos de saída
+        : [mem_address] "r" (mem_address)
+        : "r0", "r1", "r6"
+    );
+    #endif
+
+    #ifdef INFLUENCIA_DO_PIPELINE
+        __asm__ volatile (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "EOR %[output], %[input1]           \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        : [output] "+r" (*pt)
+        : [input1] "r" (0xBE)
+    );
+    #endif
 
 
-	trigger_low();
 
-    aes_indep_enc_posttrigger(pt);
+    #ifdef EOR
+   __asm__ volatile (
+        "EOR %[output], %[s]                \n" 
+        : [output] "+r" (pt[0])
+        : [s] "r" (seg)
+        : 
+    ); 
+    #endif
 
-    pt[0] = estado;
+    #ifdef NORMAL_EOR
+    pt[0] =  pt[0] ^ seg;
+    #endif
 
-	simpleserial_put('r', 16, pt);
+    #ifdef NORMAL_ADD
+    pt[0] =  (pt[0] + seg) &0xFF;
+    #endif
+
+    __asm__ volatile (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+    );
+    trigger_low();
+   
+    pt[0] = *mem_address;
+    simpleserial_put('r', 16, pt);
 	return 0x00;
 }
-
-uint8_t reset(uint8_t* x, uint8_t len)
-{
-    // Reset key here if needed
-	return 0x00;
-}
-
-static uint16_t num_encryption_rounds = 10;
-
-uint8_t enc_multi_getpt(uint8_t* pt, uint8_t len)
-{
-    aes_indep_enc_pretrigger(pt);
-
-    for(unsigned int i = 0; i < num_encryption_rounds; i++){
-        trigger_high();
-        aes_indep_enc(pt);
-        trigger_low();
-    }
-
-    aes_indep_enc_posttrigger(pt);
-	simpleserial_put('r', 16, pt);
-    return 0;
-}
-
-uint8_t enc_multi_setnum(uint8_t* t, uint8_t len)
-{
-    //Assumes user entered a number like [0, 200] to mean "200"
-    //which is most sane looking for humans I think
-    num_encryption_rounds = t[1];
-    num_encryption_rounds |= t[0] << 8;
-    return 0;
-}
-
-#if SS_VER == SS_VER_2_1
-uint8_t aes(uint8_t cmd, uint8_t scmd, uint8_t len, uint8_t *buf)
-{
-    uint8_t req_len = 0;
-    uint8_t err = 0;
-    uint8_t mask_len = 0;
-    if (scmd & 0x04) {
-        // Mask has variable length. First byte encodes the length
-        mask_len = buf[req_len];
-        req_len += 1 + mask_len;
-        if (req_len > len) {
-            return SS_ERR_LEN;
-        }
-        err = get_mask(buf + req_len - mask_len, mask_len);
-        if (err)
-            return err;
-    }
-
-    if (scmd & 0x02) {
-        req_len += 16;
-        if (req_len > len) {
-            return SS_ERR_LEN;
-        }
-        err = get_key(buf + req_len - 16, 16);
-        if (err)
-            return err;
-    }
-    if (scmd & 0x01) {
-        req_len += 16;
-        if (req_len > len) {
-            return SS_ERR_LEN;
-        }
-        err = get_pt(buf + req_len - 16, 16);
-        if (err)
-            return err;
-    }
-
-    if (len != req_len) {
-        return SS_ERR_LEN;
-    }
-
-    return 0x00;
-
-}
-#endif
 
 int main(void)
 {
-	uint8_t tmp[KEY_LENGTH] = {DEFAULT_KEY};
 
     platform_init();
     init_uart();
     trigger_setup();
 
-	aes_indep_init();
-	aes_indep_key(tmp);
-
-    /* Uncomment this to get a HELLO message for debug */
-
-    // putch('h');
-    // putch('e');
-    // putch('l');
-    // putch('l');
-    // putch('o');
-    // putch('\n');
+    putch('\n');
+    putch('m');
+    putch('a');
+    putch('i');
+    putch('n');
+    putch('\n');
 
 	simpleserial_init();
-    #if SS_VER == SS_VER_2_1
-    simpleserial_addcmd(0x01, 16, aes);
-    #else
-    simpleserial_addcmd('k', 16, get_key);
     simpleserial_addcmd('p', 16,  get_pt);
-    simpleserial_addcmd('x',  0,   reset);
-    simpleserial_addcmd_flags('m', 18, get_mask, CMD_FLAG_LEN);
-    simpleserial_addcmd('s', 2, enc_multi_setnum);
-    simpleserial_addcmd('f', 16, enc_multi_getpt);
-    #endif
+
     while(1)
         simpleserial_get();
+        
 }
