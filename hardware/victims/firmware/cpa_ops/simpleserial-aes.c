@@ -72,7 +72,7 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
     init_contexto(&myContext);
     //context_puts(&myContext);
 
-    *mem_address =pt[0];
+    *mem_address = pt[0];
 
     #ifdef NORMAL_EOR
     uint8_t volatile seg =  0xBE;
