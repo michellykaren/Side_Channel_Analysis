@@ -37,16 +37,39 @@ TARGET = simpleserial-aes
 SRC += simpleserial-aes.c
 
 # -----------------------------------------------------------------------------
-EXTRA_OPTS = NO_EXTRA_OPTS
-CFLAGS += -D$(EXTRA_OPTS)
 
+OPERATIONS_ALLOWED = CURRENT EOR_CLASSIC EOR_SECRET_LDR EOR_SECRET_MOV EOR_ISOLATED
+
+define OPERATIONS_LIST
+
+  +------------------+----------------+
+  | Operation        | Description    |
+  +------------------+----------------+------------
+  | CURRENT          | It is your current test 
+  | EOR_CLASSIC      | pt[0] =  pt[0] ^ secret    
+  | EOR_SECRET_LDR   | secret charged with ldr     
+  | EOR_SECRET_MOV   | secret charged with mov   
+  | EOR_ISOLATED     |
+  +------------------+----------------+------------
+
+endef
+
+ifeq ($(OPERATION),)
+  OPERATION = EOR_classic
+else ifeq ($(filter $(OPERATION),$(OPERATIONS_ALLOWED)),)
+  $(error Invalid OPERATION : $(OPERATION); Allowed : $(OPERATIONS_LIST))
+endif
+
+# -----------------------------------------------------------------------------
+EXTRA_OPTS = NO_EXTRA_OPTS
+CFLAGS += -D$(OPERATION)
 
 ifeq ($(CRYPTO_TARGET),)
   ${info No CRYPTO_TARGET passed - defaulting to TINYAES128C}
   CRYPTO_TARGET = TINYAES128C
 endif
 
-${info Building for platform ${PLATFORM} with CRYPTO_TARGET=$(CRYPTO_TARGET)}
+${info Building for platform ${PLATFORM} with CRYPTO_TARGET=$(CRYPTO_TARGET) and OPERATION=$(OPERATION)}
 
 #Add simpleserial project to build
 include ../simpleserial/Makefile.simpleserial
