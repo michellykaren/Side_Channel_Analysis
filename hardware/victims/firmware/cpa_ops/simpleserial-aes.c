@@ -22,12 +22,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define ACT // ADD, OR
-#define memory_target 0x20000000
-volatile uint8_t *mem_address = (volatile uint8_t *)memory_target;  // Endereço de memória desejado
+#define NO_SEND_REPONSE // SEND_REPONSE
+#define MEMORY_TARGET 0x20000000
+volatile uint8_t *mem_address = (volatile uint8_t *)MEMORY_TARGET;  // Endereço de memória desejado
 typedef struct {
     uint8_t registers[4];
-
 } Context;
 
 static char hex_lookup[16] = {
@@ -45,8 +44,8 @@ void context_puts(Context *cont) {
         reg_ptr++;
     }
 
-    // Imprime o valor do memory_target
-    uint32_t target = memory_target;
+    // Seding UART MEMORY_TARGET value
+    uint32_t target = MEMORY_TARGET;
     putch('m');
     putch(hex_lookup[(target >> 28) & 0xF ]);
     putch(hex_lookup[(target >> 24) & 0xF ]);
@@ -72,27 +71,9 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
     init_contexto(&myContext);
     //context_puts(&myContext);
 
+    #ifdef MEMORY_SELECTED
     *mem_address = pt[0];
-
-    #ifdef NORMAL_EOR
-    uint8_t volatile seg =  0xBE;
-    #endif
-
-    #ifdef NORMAL_ADD
-    uint8_t volatile seg =  0xBE;
-    #endif
-
-    #ifdef EOR
-    uint8_t volatile seg =  0xBE;
-    __asm__ volatile (
-        "LDRB %[s], =0xBE                   \n"
-        : [s] "=r" (seg)
-        : 
-    );
-    #endif
     trigger_high();
-
-    #ifdef ACT
     __asm__ volatile (
         "NOP \n"
         "NOP \n"
@@ -110,11 +91,59 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "strb   r0, [%[mem_address]]    \n" //Salvar o resultado da operação no endereço de memória
         :   		                        // Sem operandos de saída
         : [mem_address] "r" (mem_address)
-        : "r0", "r1", "r6"
+        : "memory", "r0", "r1", "r6"
     );
     #endif
 
-    #ifdef INFLUENCIA_DO_PIPELINE
+    #ifdef NORMAL_EOR
+    uint8_t volatile seg =  0xBE;
+    #endif
+
+    #ifdef NORMAL_ADD
+    uint8_t volatile seg =  0xBE;
+    #endif
+
+    #ifdef EOR
+    uint8_t volatile seg =  0xBE;
+    __asm__ volatile (
+        "LDRB %[s], =0xBE                   \n"
+        : [s] "=r" (seg)
+        : 
+    );
+    #endif
+
+    #ifdef CURRENT
+    trigger_high();
+
+    __asm__ __volatile__ (
+        "mov    r0, #0                      \n" //Moving value const to R1
+        "mov    r1, #0                      \n" //Moving value const to R1
+        "mov    r1, #0xBE                   \n" //Salvar o resultado da operação no endereço de memória
+        "mov    r0, %[_pt_]                 \n" //Salvar o resultado da operação no endereço de memória
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "eor    r0, r1                      \n" //Operação EOR entre o valor carregado e R1
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "mov    %[_pt_], r0                 \n" //Salvar o resultado da operação no endereço de memória
+        : [_pt_] "+r" (pt[0])	                        // Sem operandos de saída
+        : 
+        : "memory", "cc", "r0", "r1"
+    );
+    #endif
+
+    #ifdef MOV_PIPELINE_INFLUENCE
         __asm__ volatile (
         "NOP \n"
         "NOP \n"
@@ -141,8 +170,6 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         : [input1] "r" (0xBE)
     );
     #endif
-
-
 
     #ifdef EOR
    __asm__ volatile (
@@ -174,9 +201,15 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "NOP \n"
     );
     trigger_low();
-   
+
+    #ifdef MEMORY_SELECTED
     pt[0] = *mem_address;
+    #endif
+
+    #ifdef SEND_REPONSE
     simpleserial_put('r', 16, pt);
+    #endif 
+
 	return 0x00;
 }
 
