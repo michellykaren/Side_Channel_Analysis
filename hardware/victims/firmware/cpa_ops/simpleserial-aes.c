@@ -22,9 +22,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define NO_SEND_REPONSE // SEND_REPONSE
-#define MEMORY_TARGET 0x20000000
-volatile uint8_t *mem_address = (volatile uint8_t *)MEMORY_TARGET;  // Endereço de memória desejado
+#define SEND_REPONSE // SEND_REPONSE
+#define MEMORY_TARGET 0x20000000u
+#define mem_address ((volatile uint8_t *)MEMORY_TARGET) // Endereço de memória desejado, como eu coloquei o * antes ele vai estar sempre trabalhando com o valor
+
 typedef struct {
     uint8_t registers[4];
 } Context;
@@ -67,59 +68,48 @@ void init_contexto(Context *cont) {
 
 
 uint8_t get_pt(uint8_t* pt, uint8_t len) {
-    Context myContext;
-    init_contexto(&myContext);
-    //context_puts(&myContext);
 
-    #ifdef MEMORY_SELECTED
+    #ifdef CLASSIC_EOR      
+    uint8_t volatile seg =  0xBE;
+    trigger_high();
+    __asm__ volatile (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+    );
+    pt[0]  =  pt[0] ^ seg;
+    #endif
+
+    #ifdef PL_EFFECT_SECRET_MOV_EOR
     *mem_address = pt[0];
-    trigger_high();
-    __asm__ volatile (
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "mov    r1, #0xBE               \n" //Moving value const to R1
-        "ldrb   r0, [%[mem_address]]    \n" //Moving address to R6
-        "eor    r0, r1                  \n" //Operação EOR entre o valor carregado e R1
-        "strb   r0, [%[mem_address]]    \n" //Salvar o resultado da operação no endereço de memória
-        :   		                        // Sem operandos de saída
-        : [mem_address] "r" (mem_address)
-        : "memory", "r0", "r1", "r6"
-    );
-    #endif
-
-    #ifdef NORMAL_EOR
-    uint8_t volatile seg =  0xBE;
-    #endif
-
-    #ifdef NORMAL_ADD
-    uint8_t volatile seg =  0xBE;
-    #endif
-
-    #ifdef EOR
-    uint8_t volatile seg =  0xBE;
-    __asm__ volatile (
-        "LDRB %[s], =0xBE                   \n"
-        : [s] "=r" (seg)
-        : 
-    );
-    #endif
-
-    #ifdef CURRENT
-    trigger_high();
-
-    __asm__ __volatile__ (
+    __asm__ (
         "mov    r0, #0                      \n" //Moving value const to R1
         "mov    r1, #0                      \n" //Moving value const to R1
+        : 	               
+        : 
+        :  
+    );
+    trigger_high();
+    __asm__ (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "ldrb   r0, [%[_mem_address_]]      \n"
         "mov    r1, #0xBE                   \n" //Salvar o resultado da operação no endereço de memória
-        "mov    r0, %[_pt_]                 \n" //Salvar o resultado da operação no endereço de memória
         "NOP \n"
         "NOP \n"
         "NOP \n"
@@ -136,56 +126,68 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "NOP \n"
         "NOP \n"
         "NOP \n"
-        "mov    %[_pt_], r0                 \n" //Salvar o resultado da operação no endereço de memória
-        : [_pt_] "+r" (pt[0])	                        // Sem operandos de saída
-        : 
-        : "memory", "cc", "r0", "r1"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "strb	r0, [%[_mem_address_]]      \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+ 
+        : 	               
+        : [_mem_address_] "r" (mem_address)
+        :  "memory", "r0", "r1"
     );
     #endif
 
-    #ifdef MOV_PIPELINE_INFLUENCE
-        __asm__ volatile (
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "EOR %[output], %[input1]           \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        : [output] "+r" (*pt)
-        : [input1] "r" (0xBE)
-    );
-    #endif
-
-    #ifdef EOR
-   __asm__ volatile (
-        "EOR %[output], %[s]                \n" 
-        : [output] "+r" (pt[0])
-        : [s] "r" (seg)
+    #ifdef SECRET_MOV_EOR 
+    *mem_address = pt[0];
+    __asm__ (
+        "mov    r0, #0                      \n" //Moving value const to R1
+        "mov    r1, #0                      \n" //Moving value const to R1
+        : 	               
         : 
-    ); 
-    #endif
-
-    #ifdef NORMAL_EOR
-    pt[0] =  pt[0] ^ seg;
-    #endif
-
-    #ifdef NORMAL_ADD
-    pt[0] =  (pt[0] + seg) &0xFF;
+        :  
+    );
+    trigger_high();
+    __asm__ (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "ldrb   r0, [%[_mem_address_]]      \n"
+        "mov    r1, #0xBE                   \n" //Salvar o resultado da operação no endereço de memória
+        "eor    r0, r1                      \n" //Operação EOR entre o valor carregado e R1
+        "strb	r0, [%[_mem_address_]]      \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        : 	               
+        : [_mem_address_] "r" (mem_address)
+        :  "memory", "r0", "r1"
+    );
     #endif
 
     __asm__ volatile (
@@ -202,12 +204,12 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
     );
     trigger_low();
 
-    #ifdef MEMORY_SELECTED
-    pt[0] = *mem_address;
-    #endif
-
     #ifdef SEND_REPONSE
-    simpleserial_put('r', 16, pt);
+        #ifdef CLASSIC_EOR 
+        simpleserial_put('r', 16, pt);
+        #else
+        simpleserial_put('r', 16, mem_address);
+        #endif
     #endif 
 
 	return 0x00;
