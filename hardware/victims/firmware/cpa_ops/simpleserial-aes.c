@@ -69,6 +69,77 @@ void init_contexto(Context *cont) {
 
 uint8_t get_pt(uint8_t* pt, uint8_t len) {
 
+    #ifdef ALL_SEPARATE
+       *mem_address = pt[0];
+    __asm__ (
+        "mov    r0, #0                      \n" //Moving value const to R1
+        "mov    r1, #0                      \n" //Moving value const to R1
+        : 	               
+        : 
+        :  
+    );
+    trigger_high();
+    __asm__ (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "ldrb   r0, [%[_mem_address_]]      \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "mov    r1, #0xBE                   \n" //Salvar o resultado da operação no endereço de memória
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "eor    r0, r1                     \n" //Operação EOR entre o valor carregado e R1
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "strb	r0, [%[_mem_address_]]      \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        : 	               
+        : [_mem_address_] "r" (mem_address)
+        :  "memory", "r0", "r1"
+    );
+    #endif
+
     #ifdef CLASSIC_EOR      
     uint8_t volatile seg =  0xBE;
     trigger_high();
@@ -85,6 +156,47 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "NOP \n"
     );
     pt[0]  =  pt[0] ^ seg;
+    #endif
+
+    #ifdef SECRET_MOV_EOR 
+    *mem_address = pt[0];
+    __asm__ (
+        "mov    r0, #0                      \n" //Moving value const to R1
+        "mov    r1, #0                      \n" //Moving value const to R1
+        : 	               
+        : 
+        :  
+    );
+    trigger_high();
+    __asm__ (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "ldrb   r0, [%[_mem_address_]]      \n"
+        "mov    r1, #0xBE                   \n" //Salvar o resultado da operação no endereço de memória
+        "eor    r0, r1                      \n" //Operação EOR entre o valor carregado e R1
+        "strb	r0, [%[_mem_address_]]      \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        : 	               
+        : [_mem_address_] "r" (mem_address)
+        :  "memory", "r0", "r1"
+    );
     #endif
 
     #ifdef PL_EFFECT_SECRET_MOV_EOR
@@ -131,48 +243,6 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "NOP \n"
         "NOP \n"
         "NOP \n"
-        "strb	r0, [%[_mem_address_]]      \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
- 
-        : 	               
-        : [_mem_address_] "r" (mem_address)
-        :  "memory", "r0", "r1"
-    );
-    #endif
-
-    #ifdef SECRET_MOV_EOR 
-    *mem_address = pt[0];
-    __asm__ (
-        "mov    r0, #0                      \n" //Moving value const to R1
-        "mov    r1, #0                      \n" //Moving value const to R1
-        : 	               
-        : 
-        :  
-    );
-    trigger_high();
-    __asm__ (
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "NOP \n"
-        "ldrb   r0, [%[_mem_address_]]      \n"
-        "mov    r1, #0xBE                   \n" //Salvar o resultado da operação no endereço de memória
-        "eor    r0, r1                      \n" //Operação EOR entre o valor carregado e R1
         "strb	r0, [%[_mem_address_]]      \n"
         "NOP \n"
         "NOP \n"

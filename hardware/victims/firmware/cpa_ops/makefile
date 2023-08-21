@@ -38,24 +38,24 @@ SRC += simpleserial-aes.c
 
 # -----------------------------------------------------------------------------
 
-OPERATIONS_ALLOWED = CURRENT EOR_CLASSIC EOR_SECRET_LDR EOR_SECRET_MOV EOR_ISOLATED
+OPERATIONS_ALLOWED = CURRENT CLASSIC_EOR SECRET_MOV_EOR PL_EFFECT_SECRET_MOV_EOR ALL_SEPARATE
 
 define OPERATIONS_LIST
 
-  +------------------+----------------+
-  | Operation        | Description    |
-  +------------------+----------------+------------
-  | CURRENT          | It is your current test 
-  | EOR_CLASSIC      | pt[0] =  pt[0] ^ secret    
-  | EOR_SECRET_LDR   | secret charged with ldr     
-  | EOR_SECRET_MOV   | secret charged with mov   
-  | EOR_ISOLATED     |
-  +------------------+----------------+------------
+  +-------------------------+----------------+
+  | Operation               | Description    |
+  +-------------------------+----------------+---------------------+
+  | CURRENT                 | It is your current test              |
+  | CLASSIC_EOR             | pt[0] =  pt[0] ^ secret              |
+  | SECRET_MOV_EOR          | secret charged with mov              |
+  | PL_EFFECT_SECRET_MOV_EOR| eor isoled by nop                    |
+  | ALL_SEPARATE            | all operations separated by 9 NOPS   |
+  +-------------------------+----------------+---------------------+
 
 endef
 
 ifeq ($(OPERATION),)
-  OPERATION = EOR_classic
+  OPERATION = CURRENT
 else ifeq ($(filter $(OPERATION),$(OPERATIONS_ALLOWED)),)
   $(error Invalid OPERATION : $(OPERATION); Allowed : $(OPERATIONS_LIST))
 endif
