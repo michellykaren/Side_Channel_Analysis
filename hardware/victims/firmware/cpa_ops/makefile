@@ -38,7 +38,7 @@ SRC += simpleserial-aes.c
 
 # -----------------------------------------------------------------------------
 
-OPERATIONS_ALLOWED = CURRENT CLASSIC_EOR SECRET_MOV_EOR PL_EFFECT_SECRET_MOV_EOR ALL_SEPARATE
+OPERATIONS_ALLOWED = BENCHMARK1 BENCHMARK2 BENCHMARK3 BENCHMARK4 CURRENT
 
 define OPERATIONS_LIST
 
@@ -46,10 +46,10 @@ define OPERATIONS_LIST
   | Operation               | Description    |
   +-------------------------+----------------+---------------------+
   | CURRENT                 | It is your current test              |
-  | CLASSIC_EOR             | pt[0] =  pt[0] ^ secret              |
-  | SECRET_MOV_EOR          | secret charged with mov              |
-  | PL_EFFECT_SECRET_MOV_EOR| eor isoled by nop                    |
-  | ALL_SEPARATE            | all operations separated by 9 NOPS   |
+  | BENCHMARK1              | pt[0] =  pt[0] ^ secret              |
+  | BENCHMARK2              | secret charged with mov              |
+  | BENCHMARK3              | nops betwhenn instructions           |
+  | BENCHMARK4              | Like BK 3 but loading result into R1 |
   +-------------------------+----------------+---------------------+
 
 endef

@@ -35,8 +35,7 @@ static char hex_lookup[16] = {
 
 
 uint8_t get_pt(uint8_t* pt, uint8_t len) {
-    // Context
-    *mem_address_pt = 0;
+    *mem_address_pt = 0; // Context
     //*mem_address_sec = 0;
     __asm__ (
         "mov    r0, #0                      \n" //Moving value const to R0
@@ -47,17 +46,21 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         : [_mem_address_pt_] "r" (mem_address_pt), [_mem_address_sec_] "r" (mem_address_sec)
         :  "memory", "r0", "r1" 
     );
+    #ifdef CURRENT
+    // PUT YOUR CURRENT TEST HERE
+        __asm__ (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+    );
+    #endif
 
-    #ifdef CLASSIC_EOR // Benchmark 1
-    // Init memory values with M and S
-    *mem_address_pt = pt[0];
+    #ifdef BENCHMARK1 // Benchmark 1
+    *mem_address_pt = pt[0]; // Init memory values with M and S
     *mem_address_sec = 0xBE;
-      
     //uint8_t volatile seg =  0xBE;
     trigger_high();
-
     //pt[0]  =  pt[0] ^ (seg);
-    
        __asm__ (
         "NOP \n"
         "NOP \n"
@@ -110,18 +113,21 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
 
     #endif
 
-    #ifdef SECRET_MOV_EOR // Benchmark 2
+    #ifdef BENCHMARK2 // Benchmark 2
     *mem_address_pt = pt[0];
 
-    __asm__ (
-        "mov    r0, #0                      \n" //Moving value const to R0 (PT)
-        "mov    r1, #0                      \n" //Moving value const to R1 (Sec)
-        : 	               
-        : 
-        :  
-    );
     trigger_high();
-    __asm__ (
+       __asm__ (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
         "NOP \n"
         "NOP \n"
         "NOP \n"
@@ -146,15 +152,38 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "NOP \n"
         "NOP \n"
         "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
         : 	               
         : [_mem_address_pt_] "r" (mem_address_pt)
         :  "memory", "r0", "r1"
     );
     #endif
 
-    #ifdef CURRENT
+    #ifdef BENCHMARK3
+    *mem_address_pt = pt[0];
+    *mem_address_sec = 0;
+
     trigger_high();
     __asm__ (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
         "NOP \n"
         "NOP \n"
         "NOP \n"
@@ -209,24 +238,49 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "NOP \n"
         "NOP \n"
         "NOP \n"
-        "strb	r0, [%[_mem_address_pt_], #4]      \n" 
+        "strb	r0, [%[_mem_address_sec_], #0]      \n" 
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
         : 	               
-        : [_mem_address_pt_] "r" (mem_address_pt)
-        :  "memory", "r0", "r1", "r2"
+        : [_mem_address_pt_] "r" (mem_address_pt), [_mem_address_sec_] "r" (mem_address_sec)
+        : "memory", "cc", "r0", "r1"
     );
     #endif
 
-    #ifdef ALL_SEPARATE
-       *mem_address_pt = pt[0];
-    __asm__ (
-        "mov    r0, #0                      \n" //Moving value const to R1
-        "mov    r1, #0                      \n" //Moving value const to R1
-        : 	               
-        : 
-        :  
-    );
+    #ifdef BENCHMARK4
+    *mem_address_pt = pt[0];
+    *mem_address_sec = 0;
+    
     trigger_high();
     __asm__ (
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
         "NOP \n"
         "NOP \n"
         "NOP \n"
@@ -259,7 +313,7 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "NOP \n"
         "NOP \n"
         "NOP \n"
-        "eor    r0, r1                     \n" //Operação EOR entre o valor carregado e R1
+        "eor    r1, r0                      \n" //Operação EOR entre o valor carregado e R1
         "NOP \n"
         "NOP \n"
         "NOP \n"
@@ -270,7 +324,28 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "NOP \n"
         "NOP \n"
         "NOP \n"
-        "strb	r0, [%[_mem_address_pt_]]      \n"
+        "strb	r1, [%[_mem_address_pt_]]      \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "strb	r1, [%[_mem_address_sec_], #0]      \n" 
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
+        "NOP \n"
         "NOP \n"
         "NOP \n"
         "NOP \n"
@@ -282,8 +357,8 @@ uint8_t get_pt(uint8_t* pt, uint8_t len) {
         "NOP \n"
         "NOP \n"
         : 	               
-        : [_mem_address_pt_] "r" (mem_address_pt)
-        :  "memory", "r0", "r1"
+        : [_mem_address_pt_] "r" (mem_address_pt), [_mem_address_sec_] "r" (mem_address_sec)
+        : "memory", "cc", "r0", "r1", "r6", "r7"
     );
     #endif
 
